@@ -49,7 +49,7 @@ typedef struct task_ {
  * tast_t * - the pointer to the task
  */
 void sort(task_t *task) {
-
+  task = task;
 }
 
 /**
@@ -154,7 +154,7 @@ int main(int argc, char **argv){
     } while(task->siz != 0);
     PRINT(my_rank, "finished");
   }
-  MPI_Type_free(MPI_task_t);
+  MPI_Type_free(&MPI_task_t);
 
   MPI_Finalize();
 
