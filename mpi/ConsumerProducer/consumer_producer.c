@@ -154,6 +154,7 @@ int main(int argc, char **argv){
     } while(task->siz != 0);
     PRINT(my_rank, "finished");
   }
+  MPI_Type_free(MPI_task_t);
 
   MPI_Finalize();
 
