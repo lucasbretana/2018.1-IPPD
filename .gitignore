@@ -50,3 +50,16 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+# Vim help files
+**/tags
+tags
+*.swp
+*.swo
+
+# My help files
+**.aux
+*.aux
+**/*.old
+*.old
+
