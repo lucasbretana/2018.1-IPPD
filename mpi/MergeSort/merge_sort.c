@@ -35,7 +35,6 @@
 
 void debug(void);
 
-
 /**
  * Divide part
  * #Parameters
@@ -59,8 +58,8 @@ void print(int *, int , int );
 
 int my_rank = 0;
 int sz_comm = 0;
+int ite = 0;
 int main(int argc, char **argv){
-  int ite = 0;
   int *array = NULL;
   int low = 0, high = ARRAY_SIZE - 1;
 
