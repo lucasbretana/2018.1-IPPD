@@ -54,11 +54,20 @@ void mergesort(int *, int, int);
  */
 void merge(int *, int, int, int);
 
-void print(int *, int , int );
+/**
+ * Just print an array
+ * int *: the array address
+ * int: low boundarie (inclusive)
+ * int: high bondarie (inclusive)
+ */
+void print(FILE *, int *, int , int );
 
 int my_rank = 0;
 int sz_comm = 0;
 int ite = 0;
+double tp_time = 0.0L;
+double mp_time = 0.0L;
+double mc_time = 0.0L;
 int main(int argc, char **argv){
   int *array = NULL;
   int low = 0, high = ARRAY_SIZE - 1;
@@ -68,7 +77,10 @@ int main(int argc, char **argv){
   MPI_Comm_size(MPI_COMM_WORLD, &sz_comm);
   assert(sz_comm > 1 && "Must execute with 2+ processes");
 
+  double l_start = 0.0L;
+  mp_time = MPI_Wtime();
   if(my_rank == 0) {
+    tp_time = MPI_Wtime();
     srand(SEED);
 
     // generate array
@@ -79,79 +91,63 @@ int main(int argc, char **argv){
       array[i] = rand() % ARRAY_SIZE;
     // end array generation
 
-    print(array, low, high);
+    fprintf(stderr, "TODO:\n");
+    print(stderr, array, low, high);
     int child = (int) CHILD_ID;
     
     //-- send second half of the array
     debug();
     int med = (high/2)+1;
-    fprintf(stderr, "(%d) Sending: array [%d, %d] to %d\n", my_rank, med, high, child);
+    l_start = MPI_Wtime();
     MPI_Send(&ite, 1, MPI_INT, child, 0, MPI_COMM_WORLD);
     MPI_Send(&array[med], high-med+1, MPI_INT, child, 0, MPI_COMM_WORLD);
-    fprintf(stderr, "(%d) DONE: sending: array [%d, %d] to %d\n", my_rank, med, high, child);
+    mc_time += MPI_Wtime() - l_start;
     ++ite;
     
-    fprintf(stderr, "(%d) Mergesort: array [%d,%d]\n", my_rank, low, med-1);
     mergesort(array, low, med-1); // keep dividing
-    fprintf(stderr, "(%d) DONE: mergesort: array [%d,%d]\n", my_rank, low, med-1);
 
-    fprintf(stderr, "(%d) Receiving: array [%d,%d] from %d\n", my_rank, med, high, child);
+    l_start = MPI_Wtime();
     MPI_Recv(&array[med], high-med+1, MPI_INT, child, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    fprintf(stderr, "(%d) DONE: receiving: array [%d,%d] from %d\n", my_rank, med, high, child);
+    mc_time += MPI_Wtime() - l_start;
 
-    fprintf(stderr, "(%d) Merge: array1 [%d,%d] with array2 [%d,%d]\n", my_rank, low, med-1, med, high);
     merge(array, low, med, high);
-    fprintf(stderr, "(%d) DONE: merge: array1 [%d,%d] with array2 [%d,%d]\n", my_rank, low, med-1, med, high);
     
-    print(array, low, high);
-    /*
-    printf("\n(%d) THE END: ", my_rank);
-    print(array, 0, high);
-    printf("\n");
-    */
-
+    fprintf(stderr, "DONE:\n");
+    print(stderr, array, low, high);
   } else { 
     int size = ARRAY_SIZE / (pow(2, ite + 1));
     array = malloc(sizeof(int) * size);
     assert(array);
     MPI_Status deliver;
 
-    fprintf(stderr, "(%d) Receiving first part\n", my_rank);
     debug();
     MPI_Recv(&ite, 1, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &deliver);
     MPI_Recv(array, ARRAY_SIZE, MPI_INT, deliver.MPI_SOURCE, 0, MPI_COMM_WORLD, &deliver);
     MPI_Get_count(&deliver, MPI_INT, (int *)&high);
     --high;
-    fprintf(stderr, "(%d) Received: array [0,%d] from %d\n", my_rank, high, deliver.MPI_SOURCE);
     ++ite;
-    fprintf(stderr, "(%d) Mergesort: array [0,%d]\n", my_rank, high);
     mergesort(array, 0, high); // keep dividing
-    fprintf(stderr, "(%d) DONE: mergesort: array [0,%d]\n", my_rank, high);
 
-    fprintf(stderr, "(%d) Sending: array [%d, %d] to %d\n", my_rank, 0, high, deliver.MPI_SOURCE);
+    l_start = MPI_Wtime();
     MPI_Send(array, high+1, MPI_INT, deliver.MPI_SOURCE, 0, MPI_COMM_WORLD);
-    fprintf(stderr, "(%d) DONE: sending: array [%d, %d] to %d\n", my_rank, 0, high, deliver.MPI_SOURCE);
-
+    mc_time += MPI_Wtime() - l_start;
   }
-  /*
-    if(array != NULL) {
-    printf("(%d) I'm freeing my array %p\n", my_rank, array);
-    free(array);
-    printf("(%d) I've freed my array %p\n", my_rank, array);
-  }
-  */
   free(array);
 
+  mp_time = MPI_Wtime() - mp_time;
+  printf("%d, %d, %lf, %lf\n", sz_comm, my_rank, mp_time * 1000, mc_time * 1000);
   MPI_Finalize();
+  if(my_rank == 0)
+    printf("%d, %lf\n", sz_comm, (MPI_Wtime() - tp_time) * 1000);
 
-  fprintf(stderr, "\n");
   return 0;
 }
 
-void print(int *vet, int s, int f){
+void print(FILE *stream, int *vet, int s, int f){
+  if(!DEBUG) return;
   for(int i=s ; i<=f ; ++i) 
-    printf("[%d] > array[%d] = %d;\n", my_rank, i, vet[i]);
-  printf("\n");
+    fprintf(stream, "[%d] > array[%d] = %d;\n", my_rank, i, vet[i]);
+  fprintf(stream, "\n");
 }
 
 /**
@@ -173,14 +169,6 @@ void merge(int array[], int a, int c, int d) {
   int sz_res = d-a+1, *res = malloc(sizeof(int) * sz_res);
   assert(res);
   
-  /*
-    printf("\n(%d) Merging: ", my_rank);
-    print(array, a, b);
-    printf("\t(%d) with: ", my_rank);
-    print(array, c, d);
-    printf("\n");
-    */
-
   // compare
   while((left<=b) && (right <= d)) {
     if(array[left] < array[right]) 
@@ -201,18 +189,6 @@ void merge(int array[], int a, int c, int d) {
   for(int i=a, mark=0;i<=d && mark<=sz_res;++i, ++mark)
     array[i] = res[mark];
 
-  /*
-  printf("\n(%d) merged: ", my_rank);
-  print(array, a, d);
-  printf("\n");
-  */
-
-  /*
-  printf("(%d) I'm freeing my auxiliar array %p\n", my_rank, res);
-  free(res);
-  printf("(%d) I've freed my auxiliar array %p\n", my_rank, res);
-  */
-
   free(res);
 
 }
@@ -232,49 +208,37 @@ void mergesort(int array[], int b, int e) {
     return;
   }
 
-  //fprintf(stderr, "(%d) Inside mergesort: %p [%u, %u]\n", my_rank, array, b, e);
   int fstArray2 = ((e-b)/2)+1 + b;
-  //fprintf(stderr, "(%d) DEBUG: array [%d, %d] -> %d\n", my_rank, b, e, fstArray2);
   int childID = (int)CHILD_ID;
   if(childID < sz_comm - 1) {
     // send the second half to child
-    fprintf(stderr, "(%d) Inside mergesort: sending (%u, %u) to %d\n", my_rank, fstArray2, e, childID);
+    double l_start = MPI_Wtime();
     MPI_Send(&ite, 1, MPI_INT, childID, 0, MPI_COMM_WORLD);
     MPI_Send(&array[fstArray2], e-fstArray2+1, MPI_INT, childID, 0, MPI_COMM_WORLD);
-    fprintf(stderr, "(%d) Inside mergesort: done sending (%u, %u) to %d\n", my_rank, fstArray2, e, childID);
+    mc_time += MPI_Wtime() - l_start;
     ++ite;
 
     // call for the first half
-
-    fprintf(stderr, "(%d) Inside mergesort: Mergesort: array [%d,%d]\n", my_rank, b, fstArray2-1);
     mergesort(array, b, fstArray2-1);
-    fprintf(stderr, "(%d) Inside mergesort: DONE: mergesort: array [%d,%d]\n", my_rank, b, fstArray2-1);
 
     // receive back the work
-    fprintf(stderr, "(%d) Inside mergesort: receiving [%d, %d] from %d\n", my_rank, fstArray2, e, childID);
+    l_start = MPI_Wtime();
     MPI_Recv(&array[fstArray2], e-fstArray2+1, MPI_INT, childID, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    fprintf(stderr, "(%d) Inside mergesort: DONE receiving [%d, %d] from %d\n", my_rank, fstArray2, e, childID);
+    mc_time += MPI_Wtime() - l_start;
   } else {
     // call for the first half
-    //fprintf(stderr, "(%d) (1/2) Calling merge for: %p [%u, %u]\n", my_rank, array, b, m-1);
-    fprintf(stderr, "(%d) Inside mergesort: Mergesort (1/2): array [%d, %d]\n", my_rank, b, fstArray2-1);
     mergesort(array, b, fstArray2-1);
-   // scanf("c%*c");
-    fprintf(stderr, "(%d) Inside mergesort: DONE: mergesort (1/2): array [%d,%d]\n", my_rank, b, fstArray2-1);
     // call mergesort for the second half
-    //fprintf(stderr, "(%d) (2/2) Calling merge for: %p [%u, %u]\n", my_rank, array, m, e);
-    fprintf(stderr, "(%d) Inside mergesort: Mergesort (2/2): array [%d, %d]\n", my_rank, fstArray2, e);
     mergesort(array, fstArray2, e);
-   // scanf("c%*c");
-    fprintf(stderr, "(%d) Inside mergesort: DONE: mergesort (2/2): array [%d,%d]\n", my_rank, fstArray2, e);
   }
 
-  fprintf(stderr, "(%d) Inside mergesort: Merge: array1 [%d, %d] with array2 [%d,%d]\n", my_rank, b, fstArray2-1, fstArray2, e);
   merge(array, b, fstArray2, e);
-  fprintf(stderr, "(%d) Inside mergesort: DONE: merge: array1 [%d, %d] with array2 [%d,%d]\n", my_rank, b, fstArray2-1, fstArray2, e);
 
 }
 
+/**
+ * Enter debug mode, waiting to some debbuger connect
+ */
 void debug(void) {
   if(!DEBUG) return;
 
