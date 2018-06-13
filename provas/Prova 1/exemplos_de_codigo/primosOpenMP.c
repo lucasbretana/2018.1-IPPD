@@ -28,12 +28,19 @@ int main ( int argc, char *argv[] )
   Modified:
 
     06 August 2009
+    12 June   2018
 
   Author:
 
     John Burkardt
+
+  Editors:
+    Bretana, L. E. - lebretana@inf.ufpel.edu.br
 */
 {
+  //  warning removal
+  argc = argc;
+  argv = argv;
   int n_factor;
   int n_hi;
   int n_lo;
@@ -98,7 +105,6 @@ void prime_number_sweep ( int n_lo, int n_hi, int n_factor )
     each iteration.
 */
 {
-  int i;
   int n;
   int primes;
   double wtime;
@@ -137,6 +143,10 @@ int prime_number ( int n )
 
     PRIME_NUMBER returns the number of primes between 1 and N.
 
+  Edited:
+    Now also prints the prime number and wich thread confirmed that.
+    Also now the "is prime" action is also paralelized now
+
   Discussion:
 
     A naive algorithm is used.
@@ -157,6 +167,9 @@ int prime_number ( int n )
       100,000,000   5,761,455
     1,000,000,000  50,847,534
 
+  Edited:
+    Also now prints the primes found
+
   Licensing:
 
     This code is distributed under the GNU LGPL license. 
@@ -164,16 +177,21 @@ int prime_number ( int n )
   Modified:
 
     21 May 2009
+    12 Jun 2018
 
   Author:
 
     John Burkardt
+
+  Editor:
+    Bretana, L. E. - lebretana@inf.ufpel.edu.br
 
   Parameters:
 
     Input, int N, the maximum number to check.
 
     Output, int PRIME_NUMBER, the number of prime numbers up to N.
+    Also prints the primes found
 */
 {
   int i;
@@ -186,19 +204,24 @@ int prime_number ( int n )
   private ( i, j, prime )
   
 
-# pragma omp for reduction ( + : total )
-  for ( i = 2; i <= n; i++ )
-  {
+  // prime counter
+  # pragma omp for reduction ( + : total )
+  for ( i = 2; i <= n; i++ ) {
     prime = 1;
 
-    for ( j = 2; j < i; j++ )
-    {
-      if ( i % j == 0 )
-      {
+    // prime check, for a given i
+    unsigned const fator = omp_get_num_threads();
+    int j = 0;
+    int r = 0;
+    #pragma omp for shared(prime) private(j, r)
+    for ( j = omp_get_thread_num() ; j < i && prime; j += fator ) {
+      if ( (r = i % j) == 0 ) {
+        fprintf(stderr, "(%d) NOT prime! -:> %d %% %d = %d != 0.\n", omp_get_thread_num(), i, j, r);
         prime = 0;
-        break;
       }
     }
+    if(prime && !omp_get_thread_num())
+      fprintf(stderr, "(%d) prime! -:> %d.\n", tid, i);
     total = total + prime;
   }
 
