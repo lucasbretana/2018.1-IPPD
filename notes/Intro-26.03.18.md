@@ -58,4 +58,4 @@ The programming task now, more than ever, must make a good use of the resources 
 Some programs will need to be re-written and re-thinked, other could be automatically changed (**hard** task), ...  
 
 # Performance
-
+--
