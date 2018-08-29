@@ -8,11 +8,10 @@
 |-----------------------------------|
 |             memory                |
 |-----------------------------------|
-Fig 1.: The parallel model  
-Here there is only one memory that is accessed by all the processes using some connection:  
-  - network  
-  - bus  
-  - ...
+Fig 1.: The shared memory model  
+Here there is only one memory that is accessed by all the processes using some sync. mechanism  
+  - mutex   
+  - tuple space (coordination)  
 
 
 |---------|             |---------|
@@ -32,10 +31,9 @@ Here there is only one memory that is accessed by all the processes using some c
             | |=====| |
             |---------|
 
-Fig 2.: The distributed model
-On this model all process have its own memory, and commucate through some connection:  
-  - message passing  
-  - tuple space  
+Fig 2.: The distributed memory model  
+On this model all process have its own memory, and communicate through using apropriated mechanism:  
+  - message passing    
   - ...  
 
 ### Common questions
