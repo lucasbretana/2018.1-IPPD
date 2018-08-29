@@ -57,5 +57,14 @@ The programming task now, more than ever, must make a good use of the resources 
 
 Some programs will need to be re-written and re-thinked, other could be automatically changed (**hard** task), ...  
 
-# Performance
---
+## How to write parallels programs?
+- task division  
+  - divide the problem in   
+- data level division   
+  - divide the problem in  
+
+### Coordination
+- coordinates the work between cores  
+- communication between workind cores   
+- carga load equally  
+- sync   
