@@ -63,7 +63,7 @@ Some examples of clause:
   - num\_threads (<num_threads>)
     * defines the number of threads to use on the section
 
-Reduction clause  
+##### Reduction clause  
 The reduction operation is a binary operation   
     - one variable  
     - one operation   
@@ -75,6 +75,7 @@ The reduction operation is a binary operation
   finalResult += f(...)
 ```
 
+##### For
 To parallelize the loop we use the __for__ directive, that makes each thread get one iteration each time  
   creates a __team__ to work the for iterations   
 ```
@@ -90,21 +91,38 @@ Note: the for semantics is restricted
     * i += c  
     * i = i + c   
 
+##### Scope
 On the __for__ primitive there are some extra _clauses_ to change the scope of some variables   
   * private (a, ...)   
   * shared (b, ...)   
 There is also the possibility to define the default option  
   * default (none|private|public)   
 
+##### Task Scheduling
 There are also some others _clauses_ to define the work scheduling to be used on the for  
   * __static__: the task are agruped in chunks that are staticaly atributed to each thread  
   * __dynamic__: the chunks are atributed dynamicaly, when one thread finishes its chunk it will get a new chunks   
-  * __guided__: indicates the minimum iterations to agrup in one chunk  
+  * __guided__: creates chunks with different sizes, making the first chunks bigger (more iterations) that the last ones
+    - this approach assumes that the task gets more **hard** with time  
   * __runtime__: the decision is made in runtime by the omp system (OMP\_SCHEDULE macro)   
 
-##### Trapezoidal rule
+##### Atomic and Barrier
+  - __atomic__ can only execute one simple atribution (normally use a machine level instruction to perform the atribution)  
+  - __barrier__ used to protected a region (has more overhead)  
+
+##### Lock
+  - the OpenMP also offers the __lock__ tool  
+  - does not implies in a section, we need to explicit say to start/finish a lock   
+  - do note that every lock should be created and destroyed a single time   
+    * ```omp_set_lock(&lock_t)```
+
+### Trapezoidal rule
   - calculate the area under some curve using aproximative sums   
   - just like the Riemmans sum, but using "grotesc" rectangles  
+
+### Producer & Consumer
+  - many producers, creating problems   
+  - many consumers, solving problems  
 
 ###### Time mesuring  
 
