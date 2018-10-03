@@ -3,7 +3,7 @@ ifndef CC
 	CC = gcc
 endif
 
-CCFLAGS=-std=c99
+CCFLAGS=-std=c11 -Wall -Wextra
 
 LIBS = -lOpenCL
 

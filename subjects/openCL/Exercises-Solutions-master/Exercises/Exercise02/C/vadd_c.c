@@ -8,6 +8,7 @@
 //             Updated by Tom Deakin and Simon McIntosh-Smith, October 2012
 //             Updated by Tom Deakin, July 2013
 //             Updated by Tom Deakin, October 2014
+//             Updated by Lucas Bretana, October 2018
 //
 //------------------------------------------------------------------------------
 
@@ -15,6 +16,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#include <assert.h>
 #ifdef __APPLE__
 #include <OpenCL/opencl.h>
 #include <unistd.h>
@@ -59,8 +61,9 @@ const char *KernelSource = "\n" \
 "   const unsigned int count)                                           \n" \
 "{                                                                      \n" \
 "   int i = get_global_id(0);                                           \n" \
-"   if(i < count)                                                       \n" \
+"   if(i < count) {                                                     \n" \
 "       c[i] = a[i] + b[i];                                             \n" \
+"   }                                                                   \n" \
 "}                                                                      \n" \
 "\n";
 
@@ -111,7 +114,8 @@ int main(int argc, char** argv)
     }
 
     // Get all platforms
-    cl_platform_id Platform[numPlatforms];
+    cl_platform_id *Platform = calloc(numPlatforms, sizeof(Platform));
+    assert(Platform);
     err = clGetPlatformIDs(numPlatforms, Platform, NULL);
     checkError(err, "Getting platforms");
 
