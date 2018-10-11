@@ -1,9 +1,8 @@
-
 ifndef CC
 	CC = gcc
 endif
 
-CCFLAGS=-O3 -lm
+CCFLAGS=-Wall -Wextra -O0 -g -lm
 
 LIBS = -lOpenCL -fopenmp
 
@@ -25,9 +24,12 @@ endif
 
 CCFLAGS += -D DEVICE=$(DEVICE)
 
+solution: solution.c $(COMMON_DIR)/wtime.c $(COMMON_DIR)/device_info.c
+	$(CC) $^ $(CCFLAGS) $(LIBS) -I $(COMMON_DIR) -o $@
+
 vadd: vadd_c.c $(COMMON_DIR)/wtime.c $(COMMON_DIR)/device_info.c
 	$(CC) $^ $(CCFLAGS) $(LIBS) -I $(COMMON_DIR) -o $@
 
 
 clean:
-	rm -f vadd
+	rm -f vadd solution
