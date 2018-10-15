@@ -50,4 +50,22 @@
 
 - 3 tiers: view, data logic and data storage
 
-- thin cliente: ... 
+#### Fundamentals models
+##### Thinc client - fat server
+- thin cliente: or dummy client, doesn't do much, everything is computed on ther server side
+- fat server: is resposible for doing all the processing, common in the past and "kinda" comming back now (_cloud_)
+
+##### Brokerage and proxy service
+- used to mask the final service server
+	* is a middle server that have the real location of the final server
+	* the middle server can perform task of balance load and failuer recover, simplifying it for the client 
+
+#### Fundamentals notes
+- the network is always a problem!
+- how to sync message passing between server?!
+- how to have a clock?!- 
+
+- client ----> | ~~network~~ |	-----> server
+									*
+									* abstraction layer for communication
+									* can be secure or not, if  not then should be secure at application level
