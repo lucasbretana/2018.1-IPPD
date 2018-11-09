@@ -9,6 +9,7 @@ Any problem that uses the SIMD model with small data portion (like big matrixes 
 Therefore it uses the shared memory model, wich better will have a faster syncrony than sending many, many messages (distributed memory model mainly uses message passing for syncronization or some abstraction for this model).
 
 ### Question #3: using MPI create an application to caculate prime numbers. It should be possible to define (at compile or runtime) the numbers of primes to find.
-Answer in question3.{c, h}
+Answer in question3.{c,h}
 
-### Question #4:
+### Question #4: using OpenMP create an application to caculate prime numbers. It should be possible to define (at compile or runtime) the numbers of primes to find.
+Answer in question4.{c,h}
