@@ -149,6 +149,10 @@ void check_error(cl_int err, const char *operation, char *filename, int line)
         fprintf(stderr, "Error code was \"%s\" (%d)\n", err_code(err), err);
         exit(EXIT_FAILURE);
     }
+    else
+    {
+      fprintf(stderr, "SUCESS on '%s'\n", operation);
+    }
 }
 
 

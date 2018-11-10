@@ -41,7 +41,7 @@ extern int output_device_info(cl_device_id );
 //------------------------------------------------------------------------------
 
 #define TOL    (0.001)   // tolerance used in floating point comparisons
-#define LENGTH (1024)    // length of vectors a, b, and c
+#define LENGTH (1024)    // length of the arrays
 
 //------------------------------------------------------------------------------
 //
@@ -64,6 +64,8 @@ const char *KernelSource = "\n" \
                             "   int i = get_global_id(0);                                           \n" \
                             "   if(i < count)                                                       \n" \
                             "       c[i] = a[i] + b[i];                                             \n" \
+                            "   else                                                                \n" \
+                            "       c[0] = 999;                                                     \n" \
                             "}                                                                      \n" \
                             "\n";
 
@@ -74,22 +76,24 @@ int main(int argc, char** argv)
 {
   argc = argc;
   argv = argv;
+  // INITIALIZATION
+  // =========================================
   int          err;               // error code returned from OpenCL calls
 
   float*       h_a = (float*) calloc(LENGTH, sizeof(float));       // a vector
-        assert(h_a);
+  assert(h_a);
   float*       h_b = (float*) calloc(LENGTH, sizeof(float));       // b vector
-        assert(h_b);
+  assert(h_b);
   float*       h_c = (float*) calloc(LENGTH, sizeof(float));       // c vector
-        assert(h_c);
+  assert(h_c);
   float*       h_d = (float*) calloc(LENGTH, sizeof(float));       // d vector
-        assert(h_d);
+  assert(h_d);
   float*       h_e = (float*) calloc(LENGTH, sizeof(float));       // e vector
-        assert(h_e);
+  assert(h_e);
   float*       h_f = (float*) calloc(LENGTH, sizeof(float));       // f vector
-        assert(h_f);
+  assert(h_f);
   float*       h_g = (float*) calloc(LENGTH, sizeof(float));       // g vector
-        assert(h_g);
+  assert(h_g);
 
   unsigned int correct;           // number of correct results
 
@@ -107,7 +111,7 @@ int main(int argc, char** argv)
   cl_mem d_f;                     // device memory used for the output f vector
   cl_mem d_g;                     // device memory used for the output g vector
 
-  // Fill vectors a and b with random float values
+  // Fill input vectors with random floats
   int count = LENGTH;
   for(int i = 0; i < count; i++){
     h_a[i] = rand() / (float)RAND_MAX;
@@ -117,9 +121,9 @@ int main(int argc, char** argv)
   }
 
   // Set up platform and GPU device
+  // =========================================
 
   cl_uint numPlatforms;
-
   // Find number of platforms
   err = clGetPlatformIDs(0, NULL, &numPlatforms);
   checkError(err, "Finding platforms");
@@ -146,16 +150,16 @@ int main(int argc, char** argv)
   if (device_id == NULL)
     checkError(err, "Finding a device");
 
-  err = output_device_info(device_id);
-  checkError(err, "Printing device output");
+  //err = output_device_info(device_id); // TODO remove
+  //checkError(err, "Printing device output");
 
   // Create a compute context
   context = clCreateContext(0, 1, &device_id, NULL, NULL, &err);
   checkError(err, "Creating context");
 
   // Create a command queue
-  commands = clCreateCommandQueue(context, device_id, 0, &err);
-//  commands = clCreateCommandQueueWithProperties(context, device_id, 0, &err);
+//  commands = clCreateCommandQueue(context, device_id, 0, &err);
+  commands = clCreateCommandQueueWithProperties(context, device_id, 0, &err);
   checkError(err, "Creating command queue");
 
   // Create the compute program from the source buffer
@@ -179,70 +183,49 @@ int main(int argc, char** argv)
   ko_vadd = clCreateKernel(program, "vadd", &err);
   checkError(err, "Creating kernel");
 
-  // Create the input (a, b) and output (c) arrays in device memory
-  d_a  = clCreateBuffer(context,  CL_MEM_READ_ONLY,  sizeof(float) * count, NULL, &err);
+  d_a = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(float) * count, h_a, &err);
   checkError(err, "Creating buffer d_a");
-
-  d_b  = clCreateBuffer(context,  CL_MEM_READ_ONLY,  sizeof(float) * count, NULL, &err);
+  d_b = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(float) * count, h_b, &err);
   checkError(err, "Creating buffer d_b");
+  d_e  = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(float) * count, h_e, &err);
+  checkError(err, "Creating buffer d_e");
+  d_g  = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(float) * count, h_g, &err);
+  checkError(err, "Creating buffer d_g");
 
   d_c  = clCreateBuffer(context,  CL_MEM_READ_WRITE, sizeof(float) * count, NULL, &err);
   checkError(err, "Creating buffer d_c");
-
   d_d  = clCreateBuffer(context,  CL_MEM_READ_WRITE, sizeof(float) * count, NULL, &err);
   checkError(err, "Creating buffer d_d");
-
-  d_e  = clCreateBuffer(context,  CL_MEM_READ_ONLY, sizeof(float) * count, NULL, &err);
-  checkError(err, "Creating buffer d_e");
 
   d_f  = clCreateBuffer(context,  CL_MEM_WRITE_ONLY, sizeof(float) * count, NULL, &err);
   checkError(err, "Creating buffer d_f");
 
-  d_g  = clCreateBuffer(context,  CL_MEM_READ_ONLY, sizeof(float) * count, NULL, &err);
-  checkError(err, "Creating buffer d_g");
-
-  // setting up C = A + B
-  cl_event arg_rdy[2];
-  err = clEnqueueWriteBuffer(commands, d_a, CL_TRUE, 0, sizeof(float) * count, h_a, 0, NULL, &arg_rdy[0]);
-  checkError(err, "Copying h_a to device at d_a");
-
-  err = clEnqueueWriteBuffer(commands, d_b, CL_TRUE, 0, sizeof(float) * count, h_b, 0, NULL, &arg_rdy[1]);
-  checkError(err, "Copying h_b to device at d_b");
-
+  // executing C = A + B
   err  = clSetKernelArg(ko_vadd, 0, sizeof(cl_mem), &d_a);
   err |= clSetKernelArg(ko_vadd, 1, sizeof(cl_mem), &d_b);
   err |= clSetKernelArg(ko_vadd, 2, sizeof(cl_mem), &d_c);
   err |= clSetKernelArg(ko_vadd, 3, sizeof(unsigned int), &count);
   checkError(err, "Setting kernel arguments, part 1");
 
-  // executing C = A + B
-  err = clEnqueueNDRangeKernel(commands, ko_vadd, 1, NULL, (size_t *)(&count), NULL, 0, NULL, NULL); //2, arg_rdy, &arg_rdy[0]);
+  err = clEnqueueNDRangeKernel(commands, ko_vadd, 1, NULL, (size_t *)(&count), NULL, 0, NULL, NULL);
   checkError(err, "Enqueueing kernel, part 1");
 
-  // setting up D = C + E
-  err = clEnqueueWriteBuffer(commands, d_e, CL_TRUE, 0, sizeof(float) * count, h_e, 0, NULL, &arg_rdy[1]);
-  checkError(err, "Copying h_e to device at d_e");
-
+  // executing D = C + E
   err = clSetKernelArg(ko_vadd, 0, sizeof(cl_mem), &d_c);
   err |= clSetKernelArg(ko_vadd, 1, sizeof(cl_mem), &d_e);
   err |= clSetKernelArg(ko_vadd, 2, sizeof(cl_mem), &d_d);
   checkError(err, "Setting kernel arguments, part 2");
 
-  // executing D = C + E
-  err = clEnqueueNDRangeKernel(commands, ko_vadd, 1, NULL, (size_t *)(&count), NULL, 2, arg_rdy, &arg_rdy[0]);
+  err = clEnqueueNDRangeKernel(commands, ko_vadd, 1, NULL, (size_t *)(&count), NULL, 0, NULL, NULL);
   checkError(err, "Enqueueing kernel, part 2");
 
-  // setting up F = D + G
-  err = clEnqueueWriteBuffer(commands, d_g, CL_TRUE, 0, sizeof(float) * count, h_g, 0, NULL, &arg_rdy[1]);
-  checkError(err, "Copying h_b to device at d_b");
-
-  err = clSetKernelArg(ko_vadd, 0, sizeof(cl_mem), &d_c);
-  err |= clSetKernelArg(ko_vadd, 1, sizeof(cl_mem), &d_e);
-  err |= clSetKernelArg(ko_vadd, 2, sizeof(cl_mem), &d_c);
+  // executing F = D + G
+  err = clSetKernelArg(ko_vadd, 0, sizeof(cl_mem), &d_d);
+  err |= clSetKernelArg(ko_vadd, 1, sizeof(cl_mem), &d_g);
+  err |= clSetKernelArg(ko_vadd, 2, sizeof(cl_mem), &d_f);
   checkError(err, "Setting kernel arguments, part 3");
 
-  // executing F = D + G
-  err = clEnqueueNDRangeKernel(commands, ko_vadd, 1, NULL, (size_t *)(&count), NULL, 2, arg_rdy, NULL);
+  err = clEnqueueNDRangeKernel(commands, ko_vadd, 1, NULL, (size_t *)(&count), NULL, 0, NULL, NULL);
   checkError(err, "Enqueueing kernel, part 3");
 
   // Wait for the commands to complete before stopping the timer

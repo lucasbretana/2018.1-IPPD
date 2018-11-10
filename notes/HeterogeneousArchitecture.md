@@ -168,5 +168,5 @@ Note: the OpenCL can run even without a GPU on the computer, it uses the CPU
 - normally the code is focused on a single processing unit work  
 - the _runtime_ is in charge of creating as many instances of the __kernel__ as nedded  
 - the size of the data set is not informed to the __kernel__, the _runtime_ takes care of that  
-- in a OpenCL system command and enqueued to be executed on the __device__  
+- in a OpenCL system command are enqueued to be executed on the __device__  
 - it is the programmer's responsabilitie to manage memory usage and available computing
