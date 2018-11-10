@@ -6,7 +6,7 @@ In the parallesl compution field, it is used to predict the performance improvme
 
 ### Question #2: exemplify and justify why a problem better fits the shared memory model and heterogenous architecture.
 Any problem that uses the SIMD model with small data portion (like big matrixes multiplication) can be nicelly fit into an heterogenous architecture.
-Therefore it uses the shared memory model, wich better will have a faster syncrony than sending many, many messages (distributed memory model mainly uses message passing for syncronization or some abstraction for this model).
+Therefore it uses the shared memory model, wich better will have a faster syncrony than sending many, many messages (distributed memory model mainly uses message passing for syncronization or some abstraction for this model) or even a few bit messages.
 
 ### Question #3: using MPI create an application to caculate prime numbers. It should be possible to define (at compile or runtime) the numbers of primes to find.
 Answer in question3.{c,h}
