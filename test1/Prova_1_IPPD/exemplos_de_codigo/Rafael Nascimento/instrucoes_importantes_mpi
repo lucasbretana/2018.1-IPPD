@@ -1,0 +1,59 @@
+Tabela MPI
+
+MPI_Send(
+	void* message_buffer, 
+	int message_size, 
+	MPI_Datatype message_tipo, 
+	int destino, 
+	int tag, 
+	MPI_Comm MPI_COMM_WORLD)
+
+Exemplo: MPI_Send(&local_int, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
+
+********** message_buffer : ponteiro para o bloco de memória contendo o conteúdo da mensagem
+********** message_size e message_tipo : determinam a quantidade de dados a serem enviados. 
+Sendo que message tipo pode ser do tipo:
+MPI_CHAR => char (com sinal)
+MPI_SHORT => short int (com sinal)
+MPI_INT => int (com sinal)
+MPI_FLOAT => float (com sinal)
+MPI_DOUBLE => double
+********** destino: especifica o rank do processo que deve receber a mensagem
+********** tag: numero inteiro não negativo, pode ser usado para distinguir mensagem
+Exemplo, o processo 1 pode usar, digamos, uma tag de 0 para as mensagens que devem ser
+impressas e uma tag de 1 para as mensagens que devem ser usadas em um cálculo mas não impressas
+********** MPI_COMM_WORLD
+
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+
+MPI_Receive(
+	void* message_buffer, 
+	int message_size, 
+	MPI_Datatype message_tipo, 
+	int source, 
+	int tag, 
+	MPI_Comm MPI_COMM_WORLD
+	MPI_status MPI_STATUS_IGNORE)
+
+Exemplo: MPI_Recv(&total_local, 1, MPI_INT, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+
+********* source especifica o processo do qual a mensagem deve ser recebida
+Os três primeiros argumentos de MPI_Sendo e MPI_Receive devem ser compativeis
+
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+
+Podemos projetar um programa paralelo usando quaro etapas básicas:
+- Particione a solução do problema em tarefas.
+- Identifique os canais de comunicação entre as tarefas.
+- Agregue as tarefas em tarefas compostas.
+- Mapeie as tarefas compostas para os núcleos.
+
+-----------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------
+
+Não esquecer do:
+MPI_Init(NULL, NULL);
+MPI_Finalize();

@@ -1,0 +1,11 @@
+Exemplo de compilacao e execucao em MPI
+
+$mpicc -g -Wall -o hello hello.c
+$mpiexec -n <numero de processos> ./hello
+
+---------------------------------------------------------------------
+---------------------------------------------------------------------
+
+Para OpenMP
+$gcc -fopenmp omp_hello.c -o hello
+$./hello

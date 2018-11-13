@@ -1,0 +1,36 @@
+Instrucoes importantes no OpenMP
+
+-----------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------
+
+#pragma omp parallel num_threads(thread_count) reduction(+: global_result)
+global_result += Trap(a, b, n);
+
+É O MESMO QUE:
+
+pragma omp parallel num threads(thread count){
+	double my result = 0.0; /∗ private ∗/
+	my result += Local trap(double a, double b, int n);
+	pragma omp critical
+	global result += my result;
+}
+
+----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
+
+*** thread_count é o numero de threads
+*** global_result é uma variavel temporaria que vai ser criada, e que vai ser executada em sessão critica e depois o valor dela vai ser transferido para global.
+*** + é da operacao que sera executada na sessao critica (podia ser: + , ∗ , − , & , | , ˆ , && , ||)
+
+-----------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------
+
+Exemplo:
+#pragma omp parallel for schedule(dynamic) default(none) num_threads(numThreads) private(j, k) shared(total)
+#pragma omp atomic 
+
+default(none) eu obrigo a dizer se as variaveis são publicas ou privadas
+-------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------
+
+Não esquecer do <omp.h>
