@@ -31,14 +31,15 @@ const char *KernelSource = "\n" \
                             "__kernel void mx_redc(                                                 \n" \
                             "   __global int* in,                                                   \n" \
                             "   __global int* out,                                                  \n" \
-                            "   const unsigned int count)                                           \n" \
-                            "{                                                                      \n" \
+                            "   const unsigned int din,                                             \n" \
+                            "   const unsigned int dout) {                                          \n" \
                             "   int id = get_global_id(0);                                          \n" \
-                            "   int r_pos = id * 4;                                                 \n" \
-                            "   if((r_pos+3) <= count) {                                            \n" \
-                            "       out[id] = (in[r_pos] + in[r_pos+1] + in[r_pos+2] + in[r_pos+3])/4;               \n" \
-                            "   } else {                                                            \n" \
-                            "       out[0] = 999;                                                   \n" \
+                            "   if (id < dout*dout) {                                               \n" \
+                            "     int i = 2*(id / dout);                                            \n" \
+                            "     int j = 2*(id % dout);                                            \n" \
+                            "     int p1 = i * din + j;                                             \n" \
+                            "     int p2 = ((i+1)*din)+j;                                           \n" \
+                            "     out[id] = (in[p1] + in[p1+1] + in[p2] + in[p2+1])/4;              \n" \
                             "   }                                                                   \n" \
                             "}                                                                      \n" \
                             "\n";
@@ -63,8 +64,6 @@ int main(int argc, char** argv)
 
   unsigned counter = 0;
   int * h_in = (int*) calloc(SIZE, sizeof(int));
-  int * st_h_in = h_in;
-  int * h_out = NULL;
   assert(h_in);
   for (unsigned i=0 ; i<SIZE ; ++i) {
       h_in[i] = ++counter; // initial values
@@ -142,15 +141,16 @@ int main(int argc, char** argv)
   ko_mx_redc = clCreateKernel(program, "mx_redc", &err);
   checkError(err, "Creating kernel");
 
+  int *h_mx_in = h_in;
   unsigned in_sz = SIZE, in_dim = m;
+  int *h_mx_out = NULL;
   unsigned out_sz = SIZE/4, out_dim = m/2;
-
   do {
     printf("---------------------\n");
-    printf("A m[%u][%u] will become a m[%u][%u]\n", in_dim, in_dim, out_dim, out_dim);
-    printMx(h_in, m);
+    printf("A m[%u][%u](%u) will become a m[%u][%u](%u)\n", in_dim, in_dim, in_sz, out_dim, out_dim, out_sz);
+    printMx(h_mx_in, in_dim);
     fflush(stdout);
-    d_in = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(int) * SIZE, h_in, &err);
+    d_in = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(int) * in_sz, h_mx_in, &err);
     checkError(err, "Creating buffer d_in");
 
     d_out = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(int) * out_sz, NULL, &err);
@@ -159,7 +159,8 @@ int main(int argc, char** argv)
     // preparing reduction
     err  = clSetKernelArg(ko_mx_redc, 0, sizeof(cl_mem), &d_in);
     err |= clSetKernelArg(ko_mx_redc, 1, sizeof(cl_mem), &d_out);
-    err |= clSetKernelArg(ko_mx_redc, 2, sizeof(unsigned int), &in_sz);
+    err |= clSetKernelArg(ko_mx_redc, 2, sizeof(unsigned int), &in_dim);
+    err |= clSetKernelArg(ko_mx_redc, 3, sizeof(unsigned int), &out_dim);
     checkError(err, "Setting kernel arguments");
 
     // executing reduction
@@ -168,24 +169,24 @@ int main(int argc, char** argv)
     checkError(err, "Enqueueing kernel");
 
     // Wait for the commands to complete before checking
-    printf("Wainting...");
+    printf("Waiting...\n");
     fflush(stdout);
     err = clFinish(commands);
     checkError(err, "Waiting for kernel to finish");
 
     // reserve space for results
-    if ( h_out != NULL )
-      free(h_out); // clean partial results
-    h_out = (int *) calloc(out_sz, sizeof(int));
+    if ( h_mx_out != NULL )
+        free(h_mx_out); // clean partial results
+    h_mx_out = (int *) calloc(out_sz, sizeof(int));
 
     // Read back the results from the compute device
-    err = clEnqueueReadBuffer( commands, d_out, CL_TRUE, 0, sizeof(int) * out_sz, h_out, 0, NULL, NULL );
+    err = clEnqueueReadBuffer( commands, d_out, CL_TRUE, 0, sizeof(int) * out_sz, h_mx_out, 0, NULL, NULL );
     if (err != CL_SUCCESS) {
       printf("Error: Failed to read output arrays!\n%s\n", err_code(err));
       exit(1);
     }
 
-    printMx(h_out, out_dim);
+    printMx(h_mx_out, out_dim);
 
     // Next step
     in_sz = out_sz;
@@ -197,21 +198,22 @@ int main(int argc, char** argv)
     clReleaseMemObject(d_in);
     clReleaseMemObject(d_out);
 
-    h_in = h_out;
+    h_mx_in = h_mx_out;
     printf("---------------------\n");
-  } while (in_dim < 2);
+    fflush(stdout);
+  } while (in_dim > 2);
 
+  free(h_mx_out);
   // summarise results
   // cleanup then shutdown
-  clReleaseMemObject(d_in);
-  clReleaseMemObject(d_out);
+  //clReleaseMemObject(d_in);
+  //clReleaseMemObject(d_out);
   clReleaseProgram(program);
   clReleaseKernel(ko_mx_redc);
   clReleaseCommandQueue(commands);
   clReleaseContext(context);
 
-  free(st_h_in);
-  free(h_out);
+  free(h_in);
 
   return 0;
 }
@@ -228,5 +230,3 @@ void printMx(int *array, unsigned row_sz) {
   printf("\n\n");
   fflush(stdout);
 }
-
-
