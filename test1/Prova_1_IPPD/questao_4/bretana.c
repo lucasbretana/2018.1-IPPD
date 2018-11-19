@@ -219,12 +219,25 @@ int main(int argc, char** argv)
 }
 
 void printMx(int *array, unsigned row_sz) {
+  for (unsigned i=0 ; i<row_sz ; ++i) {
+    for (unsigned j=0 ; j<row_sz ; ++j) {
+      printf("M[%u][%u] = %d   \t", i, j, array[(i*row_sz)+j]);
+      if ((i<=1) && (j<=1))
+        fprintf(stderr, "M[%u][%u] = %d   \t", i, j, array[(i*row_sz)+j]);
+    }
+    printf("\n");
+  }
+  printf("\n\n");
+  fflush(stdout);
+}
+
+void printVx(int *array, unsigned row_sz) {
   unsigned sz = row_sz * row_sz;
 
   for (unsigned i=0 ; i<sz ; ++i) {
     if ((i%row_sz) == 0)
       printf("\n");
-    printf("M[%u] = %d   \t", i, array[i]);
+    printf("V[%u] = %d   \t", i, array[i]);
     fflush(stdout);
   }
   printf("\n\n");
