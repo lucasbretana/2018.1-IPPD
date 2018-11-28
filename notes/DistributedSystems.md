@@ -61,6 +61,51 @@
   - request to exit: __none__
   - sync. bet. exit and next enter: __0__ message, the finishing process will respond to the first one on the queue
 
+### The bully algorithm
+	- based on the premiss that every process has some _priori_ knowledge of others process
+
+	- three types of messages:
+		* __election__: sent to announce the start of a election
+		* __answer__: response to an election message
+		* __coordinator__: identifies the elected process
+
+	- if the process that start the election know it has the highest pid, then it sends a coordinator message to everyone
+	- else it sends an election message to everyone that is higher than him
+
+	- T = 2\*T(trans) + T(process)
+		* the upper bound of timeout is the the message trip time plus the message processing time
+	
+	- on a timeout the process assume the other crashed, and act accordingly
+
+### Reliable multicast
+	- it uses the B-multicast and B-deliver operation (B = basic)
+		* (send) B-multicast(m, g) == for each p in g, sent(m, p)
+		* (recv) B-deliver(m) == just receive it
+
+	- R-multicast(m, g): B-multicast(m, g)
+	- R-deliver(m) at process q and g = group(m)
+		* do note that the sender is included on the destination group
+```
+	if ( m.notReceived() ) 
+	{
+		m.setReceived(true)
+		if ( q != p) R-multicast(m, g)
+		R-deliver(m)
+	}	
+```
+
+	- the use of the B-multicast using threads include its problems, such as an ACK explosion
+		* this can lead to drop ACKs, which will lead to newer messages, and new ACKs....
+
+	- this algorithm is all based on the idea that if one correct process receive the message then all the correct process will eventually receive it
+
+	- this algorithm can be improved using the IP-multicast
+		* every message include the process identifier inside the group
+		* include the id of the last received message from that sender
+	
+	- if the message comes with a lower id than expected, then it is discarded
+	- if the id is higher, then the message goes to the hold back message	
+
 ## Typically problems
 ### Task allocation problem
   - the service physical resources should consider application characteristics
